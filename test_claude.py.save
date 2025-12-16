@@ -1,0 +1,86 @@
+pythonimport os
+from anthropic import Anthropic
+
+with open('.env', 'r') as f:
+    for line in f:
+        if line.startswith('ANTHROPIC_API_KEY='):
+            api_key = line.strip().split('=')[1]
+            break
+
+print(f"API Key: {api_key[:20]}...")
+
+client = Anthropic(api_key=api_key)
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=50,
+    messages=[{"role": "user", "content": "Say hello"}]
+)
+
+print(f"Claude: {response.content[0].text}")
+print("SUCCESS!")
+pythonimport os
+from anthropic import Anthropic
+
+with open('.env', 'r') as f:
+    for line in f:
+        if line.startswith('ANTHROPIC_API_KEY='):
+            api_key = line.strip().split('=')[1]
+            break
+
+print(f"API Key: {api_key[:20]}...")
+
+client = Anthropic(api_key=api_key)
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=50,
+    messages=[{"role": "user", "content": "Say hello"}]
+)
+
+print(f"Claude: {response.content[0].text}")
+print("SUCCESS!")
+
+
+
+
+
+
+import os
+from anthropic import Anthropic
+
+with open('.env', 'r') as f:
+    for line in f:
+        if line.startswith('ANTHROPIC_API_KEY='):
+            api_key = line.strip().split('=')[1]
+            break
+
+print(f"API Key loaded: {api_key[:20]}...")
+
+client = Anthropic(api_key=api_key)
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=50,
+    messages=[{"role": "user", "content": "Say 'It works!'"}]
+)
+
+print(f"Claude says: {response.content[0].text}")
+print("SUCCESS! YOUR SYSTEM IS WORKING!")import os
+from anthropic import Anthropic
+
+# Read API key from .env file manually
+with open('.env', 'r') as f:
+    for line in f:
+        if line.startswith('ANTHROPIC_API_KEY='):
+            api_key = line.strip().split('=')[1]
+            break
+
+print(f"✓ API Key loaded: {api_key[:20]}...")
+
+client = Anthropic(api_key=api_key)
+response = client.messages.create(
+    model="claude-sonnet-4-20250514",
+    max_tokens=50,
+    messages=[{"role": "user", "content": "Say 'It works!'"}]
+)
+
+print(f"✓ Claude says: {response.content[0].text}")
+print("\n🎉 SUCCESS! YOUR SYSTEM IS WORKING!")

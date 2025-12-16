@@ -1,0 +1,194 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: prophet_homes_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: prophet_user
+      POSTGRES_PASSWORD: prophet_password
+      POSTGRES_DB: prophet_homes_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/schema.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - prophet_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U prophet_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # n8n Automation Platform
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: prophet_homes_n8n
+    restart: unless-stopped
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - NODE_ENV=production
+      - WEBHOOK_URL=http://localhost:5678/
+      - GENERIC_TIMEZONE=America/Chicago
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=prophet_admin_123
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-workflows:/workflows
+    ports:
+      - "5678:5678"
+    networks:
+      - prophet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Frappe CRM (Optional - uncomment if using)
+  # frappe:
+  #   image: frappe/frappe:latest
+  #   container_name: prophet_homes_crm
+  #   restart: unless-stopped
+  #   environment:
+  #     - SITE_NAME=prophet-homes.local
+  #     - DB_HOST=postgres
+  #     - DB_PORT=5432
+  #     - ADMIN_PASSWORD=admin
+  #   volumes:
+  #     - frappe_data:/home/frappe/frappe-bench/sites
+  #   ports:
+  #     - "8080:8000"
+  #   networks:
+  #     - prophet_network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+
+  # Redis (for caching and job queues)
+  redis:
+    image: redis:7-alpine
+    container_name: prophet_homes_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - prophet_network
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Python API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prophet_homes_api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://prophet_user:prophet_password@postgres:5432/prophet_homes_db
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+      - ./logs:/app/logs
+    ports:
+      - "8000:8000"
+    networks:
+      - prophet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Streamlit Dashboard (Optional)
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    container_name: prophet_homes_dashboard
+    restart: unless-stopped
+    environment:
+      - API_URL=http://api:8000
+    env_file:
+      - .env
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "8501:8501"
+    networks:
+      - prophet_network
+    depends_on:
+      - api
+    command: streamlit run app.py --server.port=8501 --server.address=0.0.0.0
+
+  # Celery Worker (for async tasks)
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prophet_homes_worker
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://prophet_user:prophet_password@postgres:5432/prophet_homes_db
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+    networks:
+      - prophet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A tasks.celery_app worker --loglevel=info
+
+  # Celery Beat (for scheduled tasks)
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prophet_homes_scheduler
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://prophet_user:prophet_password@postgres:5432/prophet_homes_db
+      - REDIS_URL=redis://redis:6379/0
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+    networks:
+      - prophet_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: celery -A tasks.celery_app beat --loglevel=info
+
+networks:
+  prophet_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+  n8n_data:
+    driver: local
+  redis_data:
+    driver: local
+  # frappe_data:
+  #   driver: local

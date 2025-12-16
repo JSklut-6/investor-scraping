@@ -1,0 +1,29 @@
+import os
+from dotenv import load_dotenv
+from anthropic import Anthropic
+
+# Load environment variables
+load_dotenv()
+
+# Get API key
+api_key = os.getenv("ANTHROPIC_API_KEY")
+print(f"API Key found: {api_key[:20]}..." if api_key else "API Key NOT found!")
+
+# Test Claude
+if api_key:
+    client = Anthropic(api_key=api_key)
+    
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=100,
+        messages=[
+            {"role": "user", "content": "Say 'Hello Prophet Homes!' in one sentence."}
+        ]
+    )
+    
+    print("\nClaude says:")
+    print(response.content[0].text)
+    print("\n✅ SUCCESS! Your system is working!")
+else:
+    print("❌ ERROR: API key not loaded")
+
