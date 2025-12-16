@@ -1,0 +1,65 @@
+name: Test Scraper
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - run: |
+        pip install -r requirements.txt || echo "Installing basic packages"
+        pip install requests beautifulsoup4 pandas
+    - run: python main.py
+```
+
+4. Click **"Commit changes"**
+
+### Step 6: Add Your API Keys (Secrets)
+1. In your repo, click **"Settings"** (top menu bar)
+2. On the left sidebar, click **"Secrets and variables"** → **"Actions"**
+3. Click **"New repository secret"** (green button)
+4. Add each one:
+   - **Name:** `CRUNCHBASE_API_KEY`  
+     **Secret:** paste your actual API key  
+     Click "Add secret"
+   - **Name:** `LINKEDIN_EMAIL`  
+     **Secret:** your email  
+     Click "Add secret"
+   - **Name:** `LINKEDIN_PASSWORD`  
+     **Secret:** your password  
+     Click "Add secret"
+   - Add any others you need
+
+### Step 7: Test It!
+1. Click **"Actions"** tab (top of your repo)
+2. Click **"Test Scraper"** on the left
+3. Click **"Run workflow"** button (on the right side)
+4. Click the green **"Run workflow"** button
+5. Wait 10 seconds, refresh the page
+6. Click on the workflow run to watch it!
+
+### Step 8: Download Your Results
+- After it runs, scroll down on the workflow page
+- You'll see **"Artifacts"** section
+- Click **"scraper-results"** to download a zip file with your data
+
+---
+
+## If You Don't Have a requirements.txt File:
+
+1. In your repo, click **"Add file"** → **"Create new file"**
+2. Name it: `requirements.txt`
+3. Paste this (adjust based on what your scraper actually uses):
+```
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+selenium>=4.8.0
+pandas>=1.5.0
+python-dotenv>=0.21.0
+lxml>=4.9.0
